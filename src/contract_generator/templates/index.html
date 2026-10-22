@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de Contratos</title>
+<meta name="description" content="Genera contratos con IA: describe lo que necesitas, revisa el borrador, edítalo y descárgalo.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23ff6100'/><path d='M10 8h9l4 4v12H10z' fill='white'/><path d='M13 16h7M13 19h7M13 22h4' stroke='%23ff6100' stroke-width='1.5'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ version }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><span>IA</span> Generador de Contratos</div>
+  <div class="badge {{ 'on' if ai else '' }}">{{ ('IA: ' ~ model) if ai else 'Modo plantilla (sin API key)' }}</div>
+</header>
+
+<main>
+  <section id="start">
+    <h1>Crea un contrato con IA</h1>
+    <p class="sub">Describe lo que necesitas y obtén un borrador completo para revisar, editar y descargar.</p>
+    <div class="card">
+      <div class="chips" role="group" aria-label="Tipo de contrato">
+        {% for t in types %}
+        <button class="chip" type="button" data-type="{{ t.value }}" aria-pressed="false">{{ t.label }}</button>
+        {% endfor %}
+      </div>
+      <label class="sr-only" for="description">Descripción del contrato</label>
+      <textarea id="description" maxlength="4000" placeholder="Ej.: Contrato de diseño web entre mi estudio y una panadería. Incluye 3 rondas de revisiones, 50% de anticipo y entrega en 4 semanas."></textarea>
+      <details>
+        <summary>Añadir detalles (opcional)</summary>
+        <div class="grid">
+          <label>Parte A (proveedor) <input data-detail="parte_a" maxlength="300" placeholder="Nombre / empresa"></label>
+          <label>Parte B (cliente) <input data-detail="parte_b" maxlength="300" placeholder="Nombre / empresa"></label>
+          <label>Monto y pago <input data-detail="monto" maxlength="300" placeholder="USD 1.200, 50% anticipo"></label>
+          <label>Vigencia <input data-detail="vigencia" maxlength="300" placeholder="1 nov 2026 – 31 ene 2027"></label>
+          <label>Jurisdicción <input data-detail="jurisdiccion" maxlength="300" placeholder="Costa Rica"></label>
+        </div>
+      </details>
+      <div class="row">
+        <span class="hint">Cuantos más detalles (partes, alcance, pagos), más preciso el borrador. <kbd>⌘/Ctrl + Enter</kbd> para generar.</span>
+        <div class="row-actions">
+          <button class="btn ghost" id="resume" hidden>Retomar borrador</button>
+          <button class="btn" id="generate">Generar contrato</button>
+        </div>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step"><b>1. Describe</b>Tipo de contrato y términos clave.</div>
+      <div class="step"><b>2. Genera</b>La IA redacta el borrador completo.</div>
+      <div class="step"><b>3. Revisa y ajusta</b>Edita a mano o selecciona texto para mejorarlo con IA.</div>
+    </div>
+  </section>
+
+  <section id="editorView" hidden>
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn ghost" id="back">← Nuevo</button>
+        <button class="btn ghost" id="regen">↻ Regenerar</button>
+        <span id="status" role="status" aria-live="polite"></span>
+      </div>
+      <div class="group">
+        <button class="btn ghost" data-export id="copy">Copiar</button>
+        <button class="btn ghost" data-export id="dlDocx">Word (.docx)</button>
+        <button class="btn ghost" data-export id="dlHtml">HTML</button>
+        <button class="btn ghost" data-export id="print">PDF / Imprimir</button>
+      </div>
+    </div>
+    <article id="paper" class="paper" contenteditable="true" spellcheck="true" aria-label="Contrato"></article>
+    <p class="tip">Haz clic para editar. Selecciona cualquier texto para mejorarlo, acortarlo, ampliarlo o corregirlo con IA.</p>
+  </section>
+</main>
+
+<footer>Borrador orientativo: no constituye asesoría legal. Revísalo con un profesional antes de firmar. · v{{ version }}</footer>
+
+<div id="aiMenu" role="menu" aria-label="Editar con IA">
+  <button role="menuitem" data-action="mejorar">✨ Mejorar redacción</button>
+  <button role="menuitem" data-action="acortar">Acortar</button>
+  <button role="menuitem" data-action="alargar">Alargar</button>
+  <button role="menuitem" data-action="gramatica">Corregir gramática</button>
+</div>
+<div class="toast" id="toast" role="alert"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}?v={{ version }}"></script>
+</body>
+</html>
