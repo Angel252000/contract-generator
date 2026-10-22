@@ -13,10 +13,41 @@ def sse_events(response):
     return [json.loads(line[6:]) for line in response.get_data(as_text=True).split("\n\n") if line]
 
 
-def test_index_lists_contract_types(client):
+def test_index_renders_suggestions_and_types(client):
     html = client.get("/").get_data(as_text=True)
-    assert html.count('data-type="') == 6
-    assert "IA: test-model" in html
+    assert html.count('class="suggestion"') == 6
+    assert html.count("<option ") == 6
+    assert "Carta de autorización" in html
+    assert "IA activa · test-model" in html
+
+
+def test_extract_txt(client):
+    res = client.post("/api/extract", data={"file": (BytesIO("Cláusula previa".encode()), "base.txt")})
+    assert res.get_json() == {"name": "base.txt", "text": "Cláusula previa", "chars": 15}
+
+
+def test_extract_docx(client):
+    doc = Document()
+    doc.add_paragraph("Primera línea")
+    doc.add_paragraph("Segunda línea")
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    res = client.post("/api/extract", data={"file": (buffer, "base.docx")})
+    assert res.get_json()["text"] == "Primera línea\nSegunda línea"
+
+
+def test_extract_rejects_bad_files(client):
+    assert client.post("/api/extract", data={}).status_code == 400
+    assert client.post("/api/extract", data={"file": (BytesIO(b"%PDF"), "x.pdf")}).status_code == 400
+    assert client.post("/api/extract", data={"file": (BytesIO(b"no es zip"), "x.docx")}).status_code == 400
+    assert client.post("/api/extract", data={"file": (BytesIO(b"   "), "x.txt")}).status_code == 400
+
+
+def test_generate_accepts_reference_only(client, fake_writer):
+    events = sse_events(client.post("/api/generate", json={"reference": "Texto base"}))
+    assert events[-1] == {"done": True}
+    assert fake_writer.requests[0].reference == "Texto base"
 
 
 def test_healthz(client):
@@ -72,4 +103,4 @@ def test_export_docx_requires_content(client):
 
 
 def test_rejects_oversized_body(client):
-    assert client.post("/api/edit", data="x" * 1_100_000, content_type="application/json").status_code == 413
+    assert client.post("/api/edit", data="x" * 5_100_000, content_type="application/json").status_code == 413

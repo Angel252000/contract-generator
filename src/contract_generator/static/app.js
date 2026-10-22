@@ -2,9 +2,11 @@
 
 const $ = (s) => document.querySelector(s);
 const paper = $("#paper");
+const frame = $("#paperFrame");
 const menu = $("#aiMenu");
+const typeSelect = $("#typeSelect");
 const DRAFT_KEY = "contract-generator:draft";
-let selectedType = "";
+let reference = null; // {name, text} del documento subido
 let lastRequest = null;
 let savedRange = null;
 let busy = false;
@@ -18,11 +20,15 @@ function toast(msg) {
   t.textContent = msg;
   t.style.display = "block";
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => (t.style.display = "none"), 3500);
+  toast.timer = setTimeout(() => (t.style.display = "none"), 3800);
 }
 
 function setStatus(text) {
   $("#status").textContent = text;
+}
+
+async function errorFrom(res) {
+  return (await res.json().catch(() => ({}))).error || `Error ${res.status}`;
 }
 
 // --- Borrador local (solo en este navegador) ---
@@ -43,36 +49,83 @@ $("#resume").addEventListener("click", () => {
   setStatus("Borrador recuperado");
 });
 
-// --- Paso 1: formulario ---
-document.querySelectorAll(".chip").forEach((chip) =>
-  chip.addEventListener("click", () => {
-    const on = chip.getAttribute("aria-pressed") !== "true";
-    document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", "false"));
-    chip.setAttribute("aria-pressed", String(on));
-    selectedType = on ? chip.dataset.type : "";
+// --- Foco de luz que sigue al cursor en la caja de prompt ---
+const card = $("#promptCard");
+card.addEventListener("pointermove", (e) => {
+  const r = card.getBoundingClientRect();
+  card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  card.style.setProperty("--my", `${e.clientY - r.top}px`);
+});
+
+// --- Tipo de contrato y sugerencias ---
+function syncType() {
+  const value = typeSelect.value;
+  $("#typePill").hidden = value === "personalizado";
+  $("#typeLabel").textContent = typeSelect.selectedOptions[0].textContent;
+  document.querySelectorAll(".suggestion").forEach((s) =>
+    s.setAttribute("aria-pressed", String(s.dataset.prompt === $("#description").value)),
+  );
+}
+typeSelect.addEventListener("change", syncType);
+$("#typeClear").addEventListener("click", () => { typeSelect.value = "personalizado"; syncType(); });
+
+document.querySelectorAll(".suggestion").forEach((s) =>
+  s.addEventListener("click", () => {
+    $("#description").value = s.dataset.prompt;
+    typeSelect.value = s.dataset.type;
+    syncType();
+    $("#description").focus();
   }),
 );
+$("#description").addEventListener("input", syncType);
 
+// --- Subir documento de referencia ---
+$("#upload").addEventListener("click", () => $("#fileInput").click());
+$("#fileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const body = new FormData();
+  body.append("file", file);
+  $("#upload").disabled = true;
+  try {
+    const res = await fetch("/api/extract", { method: "POST", body });
+    if (!res.ok) throw new Error(await errorFrom(res));
+    const data = await res.json();
+    reference = { name: data.name, text: data.text };
+    $("#fileLabel").textContent = `${data.name} · ${data.chars.toLocaleString("es")} caracteres`;
+    $("#filePill").hidden = false;
+  } catch (err) {
+    toast(err.message || "No se pudo leer el archivo.");
+  } finally {
+    $("#upload").disabled = false;
+  }
+});
+$("#fileClear").addEventListener("click", () => { reference = null; $("#filePill").hidden = true; });
+
+// --- Generar ---
 function collect() {
   const details = {};
   document.querySelectorAll("[data-detail]").forEach((i) => (details[i.dataset.detail] = i.value));
-  return { description: $("#description").value, type: selectedType, details };
+  return { description: $("#description").value, type: typeSelect.value, details, reference: reference?.text || "" };
 }
 
 function showEditor() {
   $("#start").hidden = true;
   $("#editorView").hidden = false;
+  window.scrollTo({ top: 0 });
 }
 
 function setBusy(value) {
   busy = value;
-  ["#generate", "#regen", ...[...document.querySelectorAll("[data-export]")].map((b) => "#" + b.id)]
-    .forEach((s) => ($(s).disabled = value));
+  ["#generate", "#regen", "#upload"].forEach((s) => ($(s).disabled = value));
+  document.querySelectorAll("[data-export]").forEach((b) => (b.disabled = value));
 }
 
 async function generate(req) {
-  if (!req.description.trim() && !req.type) {
-    toast("Describe el contrato o elige un tipo.");
+  if (!req.description.trim() && req.type === "personalizado" && !req.reference) {
+    toast("Describe el contrato, elige una sugerencia o sube un documento.");
+    $("#description").focus();
     return;
   }
   lastRequest = req;
@@ -80,7 +133,7 @@ async function generate(req) {
   showEditor();
   setStatus("Redactando…");
   paper.innerHTML = "";
-  paper.classList.add("streaming");
+  frame.classList.add("streaming");
   paper.contentEditable = "false";
   let md = "";
   let pending = false;
@@ -91,7 +144,7 @@ async function generate(req) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
     });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Error ${res.status}`);
+    if (!res.ok) throw new Error(await errorFrom(res));
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = "";
@@ -118,7 +171,7 @@ async function generate(req) {
     setStatus("Error");
     toast(err.message || "No se pudo generar el contrato.");
   } finally {
-    paper.classList.remove("streaming");
+    frame.classList.remove("streaming");
     paper.contentEditable = "true";
     setBusy(false);
     storage.set(paper.innerHTML);
@@ -129,7 +182,7 @@ $("#generate").addEventListener("click", () => generate(collect()));
 $("#description").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate(collect());
 });
-$("#regen").addEventListener("click", () => lastRequest ? generate(lastRequest) : generate(collect()));
+$("#regen").addEventListener("click", () => generate(lastRequest || collect()));
 $("#back").addEventListener("click", () => {
   $("#editorView").hidden = true;
   $("#start").hidden = false;
@@ -150,9 +203,9 @@ document.addEventListener("selectionchange", () => {
   menu.style.display = "flex";
   const maxLeft = window.scrollX + document.documentElement.clientWidth - menu.offsetWidth - 8;
   const left = Math.min(Math.max(8, rect.left + window.scrollX), maxLeft);
-  const top = rect.top + window.scrollY - menu.offsetHeight - 8;
+  const top = rect.top + window.scrollY - menu.offsetHeight - 10;
   menu.style.left = left + "px";
-  menu.style.top = (top < window.scrollY ? rect.bottom + window.scrollY + 8 : top) + "px";
+  menu.style.top = (top < window.scrollY + 120 ? rect.bottom + window.scrollY + 10 : top) + "px";
 });
 
 menu.addEventListener("mousedown", (e) => e.preventDefault()); // no perder la selección
@@ -170,8 +223,8 @@ menu.querySelectorAll("button").forEach((b) =>
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, action: b.dataset.action, context: paper.innerText }),
       });
+      if (!res.ok) throw new Error(await errorFrom(res));
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       range.deleteContents();
       const tpl = document.createElement("template");
       // Varias líneas → bloques Markdown; una línea → texto en línea
@@ -219,7 +272,7 @@ $("#dlDocx").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ html: paper.innerHTML, title: title() }),
     });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Error ${res.status}`);
+    if (!res.ok) throw new Error(await errorFrom(res));
     download(await res.blob(), fileName("docx"));
     setStatus("Word descargado");
   } catch (err) {
@@ -237,3 +290,5 @@ $("#copy").addEventListener("click", async () => {
     toast("No se pudo copiar.");
   }
 });
+
+syncType();

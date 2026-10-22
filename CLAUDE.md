@@ -12,7 +12,9 @@ Python 3.11+, Flask 3, waitress, anthropic 2.x (usa `httpx2`, no `httpx`), pytho
 - `src/contract_generator/data/` — `ContractWriter` (Protocol) con `ClaudeWriter` (prompts + streaming + fallbacks) y `TemplateWriter` (offline).
 - `src/contract_generator/service/contracts.py` — `ContractService` y `create_service` (elige redactor según credenciales).
 - `src/contract_generator/service/export.py` — HTML del editor → `.docx`.
-- `src/contract_generator/api/web.py` — `create_app(service, settings)`; rutas `/`, `/healthz`, `/api/generate` (SSE), `/api/edit`, `/api/export/docx`.
+- `src/contract_generator/service/importer.py` — texto de un .docx/.txt/.md subido (campo `reference` de la solicitud).
+- `src/contract_generator/api/web.py` — `create_app(service, settings)`; rutas `/`, `/healthz`, `/api/generate` (SSE), `/api/edit`, `/api/extract`, `/api/export/docx`. `SUGGESTIONS` define las sugerencias de la portada.
+- `src/contract_generator/static/app.css` — tema "Aurora Legal" (oscuro): aurora y haz de luz con `@property --angle`; respeta `prefers-reduced-motion`.
 - `src/contract_generator/api/cli.py` — CLI interactiva.
 - `tests/` — `FakeWriter` en `conftest.py`; Claude se simula con un cliente falso, sin red.
 

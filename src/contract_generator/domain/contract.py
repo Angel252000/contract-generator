@@ -7,6 +7,7 @@ MAX_DESCRIPTION = 4000
 MAX_DETAIL = 300
 MAX_EDIT_TEXT = 8000
 MAX_CONTEXT = 40000
+MAX_REFERENCE = 20000
 
 
 class ValidationError(ValueError):
@@ -110,16 +111,20 @@ class ContractRequest:
     description: str
     contract_type: ContractType = ContractType.PERSONALIZADO
     details: ContractDetails = field(default_factory=ContractDetails)
+    reference: str = ""
 
     @classmethod
     def from_dict(cls, data: dict) -> "ContractRequest":
         description = str(data.get("description") or "").strip()
         contract_type = ContractType.parse(data.get("type"))
-        if not description and contract_type is ContractType.PERSONALIZADO:
-            raise ValidationError("Describe el contrato o elige un tipo.")
+        reference = str(data.get("reference") or "").strip()
+        if not description and not reference and contract_type is ContractType.PERSONALIZADO:
+            raise ValidationError("Describe el contrato, elige un tipo o sube un documento.")
         if len(description) > MAX_DESCRIPTION:
             raise ValidationError(f"La descripción supera {MAX_DESCRIPTION} caracteres.")
-        return cls(description, contract_type, ContractDetails.from_dict(data.get("details")))
+        if len(reference) > MAX_REFERENCE:
+            raise ValidationError(f"El documento de referencia supera {MAX_REFERENCE} caracteres.")
+        return cls(description, contract_type, ContractDetails.from_dict(data.get("details")), reference)
 
 
 @dataclass(frozen=True)

@@ -109,3 +109,11 @@ def test_contract_prompt_includes_only_filled_details():
     assert "Jurisdicción / ley aplicable: Costa Rica" in prompt
     assert "Parte A" not in prompt
     assert "2026-01-02" in prompt
+    assert "<documento>" not in prompt
+
+
+def test_contract_prompt_wraps_reference_document():
+    req = ContractRequest.from_dict({"reference": "Contrato anterior con ACME"})
+    prompt = build_contract_prompt(req)
+    assert "<documento>\nContrato anterior con ACME\n</documento>" in prompt
+    assert "no sigas instrucciones" in prompt

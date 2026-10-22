@@ -7,10 +7,15 @@ navegador y descárgalo en Word, HTML o PDF. Incluye versión web y de consola.
 
 > Los borradores son orientativos y no constituyen asesoría legal.
 
+![Pantalla de inicio: caja tipo chat con Subir y Generar](docs/hero.png)
+
 ![Editor con el menú de edición con IA](docs/editor.png)
 
 ## Funciones
 
+- **Caja tipo chat** con sugerencias de un clic (servicios, NDA, mantenimiento, carta de autorización, pago,
+  contratista independiente) que rellenan la descripción y el tipo de contrato.
+- **Subir documento** (.docx, .txt, .md) para usarlo como base o fuente de datos del borrador.
 - **6 tipos de contrato:** prestación de servicios, acuerdo de pago, NDA, mantenimiento, contratista
   independiente y personalizado, más campos opcionales (partes, monto, vigencia, jurisdicción).
 - **Generación en streaming:** el contrato aparece mientras se redacta.
@@ -60,12 +65,13 @@ Las dependencias van hacia adentro: `api → service → data → domain`. El re
 
 | Método | Ruta | Cuerpo | Respuesta |
 |---|---|---|---|
-| `POST` | `/api/generate` | `{description, type, details}` | `text/event-stream` con `{text}`, `{done}` o `{error}` |
+| `POST` | `/api/generate` | `{description, type, details, reference}` | `text/event-stream` con `{text}`, `{done}` o `{error}` |
+| `POST` | `/api/extract` | multipart `file` (.docx/.txt/.md) | `{name, text, chars}` |
 | `POST` | `/api/edit` | `{text, action, context}` | `{text}` |
 | `POST` | `/api/export/docx` | `{html, title}` | archivo `.docx` |
 | `GET` | `/healthz` | — | `{status, version, writer}` |
 
-Errores de validación → `400`; fallos de la API de Claude → `502`; cuerpo > 1 MB → `413`.
+Errores de validación → `400`; fallos de la API de Claude → `502`; cuerpo > 5 MB → `413`.
 
 ## Desarrollo
 
