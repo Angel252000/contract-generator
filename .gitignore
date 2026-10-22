@@ -12,3 +12,4 @@ htmlcov/
 contrato_*.md
 .DS_Store
 .claude/worktrees/
+.vercel
