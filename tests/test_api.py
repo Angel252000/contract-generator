@@ -18,7 +18,7 @@ def test_index_renders_suggestions_and_types(client):
     assert html.count('class="suggestion"') == 6
     assert html.count("<option ") == 6
     assert "Carta de autorización" in html
-    assert "IA activa · test-model" in html
+    assert "IA · Claude · test-model" in html
 
 
 def test_extract_txt(client):

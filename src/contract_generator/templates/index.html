@@ -27,7 +27,7 @@
     <a href="#como-funciona">Cómo funciona</a>
     <a href="#caracteristicas">Características</a>
   </nav>
-  <span class="badge {{ 'on' if ai else '' }}"><i></i>{{ ('IA activa · ' ~ model) if ai else 'Modo plantilla' }}</span>
+  <span class="badge {{ 'on' if ai else '' }}"><i></i>{% if ai %}{{ 'IA gratis' if free else 'IA' }} · {{ provider }} · {{ model }}{% else %}Modo plantilla{% endif %}</span>
 </header>
 
 <main>

@@ -93,13 +93,15 @@ def create_app(service: ContractService | None = None, settings: Settings | None
             types=list(ContractType),
             suggestions=SUGGESTIONS,
             ai=service.uses_ai,
+            provider=settings.label,
             model=settings.model,
+            free=settings.free,
             version=__version__,
         )
 
     @app.get("/healthz")
     def healthz():
-        return jsonify(status="ok", version=__version__, writer=service.writer.name)
+        return jsonify(status="ok", version=__version__, writer=service.writer.name, model=settings.model)
 
     @app.post("/api/generate")
     def generate():
@@ -150,7 +152,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = Settings.from_env()
     app = create_app(settings=settings)
-    mode = f"IA ({settings.model})" if settings.has_credentials else "plantilla (sin API key)"
+    mode = f"IA {settings.label} ({settings.model})" if settings.uses_ai else "plantilla (sin IA)"
     log.info("Generador de contratos en http://%s:%s — modo %s", settings.host, settings.port, mode)
     if settings.debug:
         app.run(host=settings.host, port=settings.port, debug=True, threaded=True)

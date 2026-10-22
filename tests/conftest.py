@@ -9,7 +9,7 @@ from contract_generator.data import TemplateWriter, WriterError
 from contract_generator.domain import ContractRequest, EditRequest
 from contract_generator.service import ContractService
 
-SETTINGS = Settings(model="test-model", has_credentials=False, host="127.0.0.1", port=0, debug=False)
+SETTINGS = Settings(provider="anthropic", model="test-model", port=0)
 
 
 class FakeWriter:
