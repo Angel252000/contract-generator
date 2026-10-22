@@ -35,7 +35,6 @@ class TemplateWriter:
                 f"**{who}**\n\nFirma: ______________________\n\n"
                 "Nombre y documento: ______________________\n\nFecha: ____/____/______\n\n"
             )
-        yield "_Generado en modo plantilla (sin API key). Define ANTHROPIC_API_KEY para redacción con IA._\n"
 
     def rewrite(self, request: EditRequest) -> str:
         text = request.text.strip()
