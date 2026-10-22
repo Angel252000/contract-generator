@@ -5,6 +5,8 @@
 Describe el contrato que necesitas, obtén un borrador completo redactado por IA (Claude), edítalo en el
 navegador y descárgalo en Word, HTML o PDF. Incluye versión web y de consola.
 
+**Demo:** https://contract-generator-ten-tau.vercel.app (modo plantilla, sin IA)
+
 > Los borradores son orientativos y no constituyen asesoría legal.
 
 ![Pantalla de inicio: caja tipo chat con Subir y Generar](docs/hero.png)
@@ -72,6 +74,19 @@ Las dependencias van hacia adentro: `api → service → data → domain`. El re
 | `GET` | `/healthz` | — | `{status, version, writer}` |
 
 Errores de validación → `400`; fallos de la API de Claude → `502`; cuerpo > 5 MB → `413`.
+
+## Despliegue en Vercel
+
+Vercel detecta Flask solo: `api/index.py` expone `app` y las dependencias salen de `pyproject.toml`.
+No hace falta `vercel.json` (una regla `rewrites` hacia `/api/index` rompe las rutas: Flask recibe la ruta
+reescrita y devuelve 404).
+
+```bash
+vercel deploy --prod --project contract-generator
+vercel env add ANTHROPIC_API_KEY production   # activa la IA en producción
+```
+
+> Con la API key puesta, cualquiera con el enlace gasta créditos de tu cuenta de Anthropic.
 
 ## Desarrollo
 
