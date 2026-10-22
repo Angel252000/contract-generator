@@ -1,0 +1,8 @@
+.venv
+.claude
+.github
+tests
+docs
+*.md
+!README.md
+.env
