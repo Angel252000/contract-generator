@@ -3,60 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Generador de Contratos</title>
-<meta name="description" content="Genera contratos con IA: describe lo que necesitas, revisa el borrador, edítalo y descárgalo.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23ff6100'/><path d='M10 8h9l4 4v12H10z' fill='white'/><path d='M13 16h7M13 19h7M13 22h4' stroke='%23ff6100' stroke-width='1.5'/></svg>">
+<title>Generador de Contratos IA</title>
+<meta name="description" content="Crea contratos personalizados con IA: describe el acuerdo, genera un borrador completo en segundos y perfecciónalo con herramientas de escritura con IA.">
+<meta name="theme-color" content="#0b0b1a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237c5cff'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='url(%23g)'/><path d='M10 8h9l4 4v12H10z' fill='white'/><path d='M13 16h7M13 19h7M13 22h4' stroke='%237c5cff' stroke-width='1.5'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ version }}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 </head>
 <body>
-<header>
-  <div class="brand"><span>IA</span> Generador de Contratos</div>
-  <div class="badge {{ 'on' if ai else '' }}">{{ ('IA: ' ~ model) if ai else 'Modo plantilla (sin API key)' }}</div>
+<div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Inicio">
+    <span class="logo" aria-hidden="true"></span>
+    <span>Contrato<b>IA</b></span>
+  </a>
+  <nav class="nav">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#caracteristicas">Características</a>
+  </nav>
+  <span class="badge {{ 'on' if ai else '' }}"><i></i>{{ ('IA activa · ' ~ model) if ai else 'Modo plantilla' }}</span>
 </header>
 
 <main>
+  <!-- Paso 1: crear -->
   <section id="start">
-    <h1>Crea un contrato con IA</h1>
-    <p class="sub">Describe lo que necesitas y obtén un borrador completo para revisar, editar y descargar.</p>
-    <div class="card">
-      <div class="chips" role="group" aria-label="Tipo de contrato">
-        {% for t in types %}
-        <button class="chip" type="button" data-type="{{ t.value }}" aria-pressed="false">{{ t.label }}</button>
-        {% endfor %}
+    <div class="hero">
+      <nav class="crumbs" aria-label="Ruta">
+        <a href="/">Inicio</a><span>›</span><span>Herramientas IA</span><span>›</span><span aria-current="page">Generador de contratos IA</span>
+      </nav>
+      <span class="eyebrow">✦ Creación de contratos con IA</span>
+      <h1>Generador de contratos <span class="gradient-text">con IA</span></h1>
+      <p class="lead">Describe el acuerdo que necesitas, genera un borrador completo en segundos y perfecciónalo con herramientas de escritura con IA integradas.</p>
+    </div>
+
+    <div class="prompt-card" id="promptCard">
+      <div class="greeting">
+        <span class="orb" aria-hidden="true"></span>
+        <p>Hola, ¿cómo puedo ayudarle?</p>
       </div>
-      <label class="sr-only" for="description">Descripción del contrato</label>
-      <textarea id="description" maxlength="4000" placeholder="Ej.: Contrato de diseño web entre mi estudio y una panadería. Incluye 3 rondas de revisiones, 50% de anticipo y entrega en 4 semanas."></textarea>
-      <details>
-        <summary>Añadir detalles (opcional)</summary>
-        <div class="grid">
-          <label>Parte A (proveedor) <input data-detail="parte_a" maxlength="300" placeholder="Nombre / empresa"></label>
-          <label>Parte B (cliente) <input data-detail="parte_b" maxlength="300" placeholder="Nombre / empresa"></label>
-          <label>Monto y pago <input data-detail="monto" maxlength="300" placeholder="USD 1.200, 50% anticipo"></label>
-          <label>Vigencia <input data-detail="vigencia" maxlength="300" placeholder="1 nov 2026 – 31 ene 2027"></label>
-          <label>Jurisdicción <input data-detail="jurisdiccion" maxlength="300" placeholder="Costa Rica"></label>
+
+      <label class="sr-only" for="description">Describe el contrato</label>
+      <textarea id="description" maxlength="4000" rows="3" placeholder="Crea un acuerdo de servicios claro para trabajo freelance"></textarea>
+
+      <div class="chips-row" id="chipsRow">
+        <span class="pill type-pill" id="typePill" hidden><span id="typeLabel"></span><button type="button" aria-label="Quitar tipo" id="typeClear">×</button></span>
+        <span class="pill file-pill" id="filePill" hidden>📄 <span id="fileLabel"></span><button type="button" aria-label="Quitar documento" id="fileClear">×</button></span>
+      </div>
+
+      <details class="details" id="details">
+        <summary>Detalles opcionales</summary>
+        <div class="fields">
+          <label>Parte A (proveedor)<input data-detail="parte_a" maxlength="300" placeholder="Nombre / empresa"></label>
+          <label>Parte B (cliente)<input data-detail="parte_b" maxlength="300" placeholder="Nombre / empresa"></label>
+          <label>Monto y pago<input data-detail="monto" maxlength="300" placeholder="USD 1.200, 50% anticipo"></label>
+          <label>Vigencia<input data-detail="vigencia" maxlength="300" placeholder="1 nov 2026 – 31 ene 2027"></label>
+          <label>Jurisdicción<input data-detail="jurisdiccion" maxlength="300" placeholder="Costa Rica"></label>
+          <label>Tipo de contrato
+            <select id="typeSelect">
+              {% for t in types %}<option value="{{ t.value }}"{% if t.value == 'personalizado' %} selected{% endif %}>{{ t.label }}</option>{% endfor %}
+            </select>
+          </label>
         </div>
       </details>
-      <div class="row">
-        <span class="hint">Cuantos más detalles (partes, alcance, pagos), más preciso el borrador. <kbd>⌘/Ctrl + Enter</kbd> para generar.</span>
-        <div class="row-actions">
-          <button class="btn ghost" id="resume" hidden>Retomar borrador</button>
-          <button class="btn" id="generate">Generar contrato</button>
+
+      <div class="prompt-actions">
+        <div class="left">
+          <input type="file" id="fileInput" accept=".docx,.txt,.md" hidden>
+          <button class="btn ghost" type="button" id="upload" title="Sube un .docx, .txt o .md como referencia">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Subir
+          </button>
+          <button class="btn ghost" type="button" id="resume" hidden>Retomar borrador</button>
         </div>
+        <button class="btn shimmer" id="generate"><span>Generar</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m0 0-6-6m6 6-6 6"/></svg>
+        </button>
       </div>
     </div>
-    <div class="steps">
-      <div class="step"><b>1. Describe</b>Tipo de contrato y términos clave.</div>
-      <div class="step"><b>2. Genera</b>La IA redacta el borrador completo.</div>
-      <div class="step"><b>3. Revisa y ajusta</b>Edita a mano o selecciona texto para mejorarlo con IA.</div>
+
+    <div class="suggestions" aria-label="Sugerencias">
+      {% for label, type, prompt in suggestions %}
+      <button class="suggestion" type="button" data-type="{{ type }}" data-prompt="{{ prompt }}">{{ label }}</button>
+      {% endfor %}
     </div>
+
+    <section id="como-funciona" class="block">
+      <h2>Cómo funciona</h2>
+      <div class="steps">
+        <article class="glass step"><span class="num">01</span><h3>Describe tu contrato</h3><p>Explica el tipo de acuerdo y los términos: partes, alcance, pagos y plazos. También puedes subir un documento como base.</p></article>
+        <article class="glass step"><span class="num">02</span><h3>Genera el borrador</h3><p>La IA redacta un contrato completo, con cláusulas numeradas y bloque de firmas, en segundos.</p></article>
+        <article class="glass step"><span class="num">03</span><h3>Revisa y personaliza</h3><p>Edita a mano o selecciona cualquier texto para mejorarlo, acortarlo, ampliarlo o corregirlo con IA.</p></article>
+      </div>
+    </section>
+
+    <section id="caracteristicas" class="block">
+      <h2>Todo lo que necesitas para tu contrato</h2>
+      <div class="bento">
+        <article class="glass tile wide">
+          <h3>Edición con IA sobre la selección</h3>
+          <p>Selecciona una cláusula y elige qué hacer con ella.</p>
+          <div class="mock-menu" aria-hidden="true"><span>✨ Mejorar redacción</span><span>Acortar</span><span>Alargar</span><span>Corregir gramática</span></div>
+        </article>
+        <article class="glass tile"><h3>Sin plantillas</h3><p>Empieza directo desde una descripción en lenguaje natural.</p></article>
+        <article class="glass tile"><h3>Sube tu documento</h3><p>Usa un .docx, .txt o .md existente como referencia para el borrador.</p></article>
+        <article class="glass tile"><h3>6 tipos listos</h3><p>Servicios, pago, NDA, mantenimiento, contratista independiente y personalizado.</p></article>
+        <article class="glass tile">
+          <h3>Exporta como quieras</h3>
+          <p>Descarga en Word (.docx), HTML o PDF, o cópialo al portapapeles.</p>
+          <div class="formats" aria-hidden="true"><span>.docx</span><span>.pdf</span><span>.html</span></div>
+        </article>
+      </div>
+    </section>
   </section>
 
+  <!-- Paso 2: editor -->
   <section id="editorView" hidden>
-    <div class="toolbar">
+    <div class="toolbar glass">
       <div class="group">
         <button class="btn ghost" id="back">← Nuevo</button>
         <button class="btn ghost" id="regen">↻ Regenerar</button>
@@ -64,17 +131,19 @@
       </div>
       <div class="group">
         <button class="btn ghost" data-export id="copy">Copiar</button>
-        <button class="btn ghost" data-export id="dlDocx">Word (.docx)</button>
         <button class="btn ghost" data-export id="dlHtml">HTML</button>
-        <button class="btn ghost" data-export id="print">PDF / Imprimir</button>
+        <button class="btn ghost" data-export id="print">PDF</button>
+        <button class="btn shimmer small" data-export id="dlDocx"><span>Descargar Word</span></button>
       </div>
     </div>
-    <article id="paper" class="paper" contenteditable="true" spellcheck="true" aria-label="Contrato"></article>
+    <div class="paper-frame" id="paperFrame">
+      <article id="paper" class="paper" contenteditable="true" spellcheck="true" aria-label="Contrato"></article>
+    </div>
     <p class="tip">Haz clic para editar. Selecciona cualquier texto para mejorarlo, acortarlo, ampliarlo o corregirlo con IA.</p>
   </section>
 </main>
 
-<footer>Borrador orientativo: no constituye asesoría legal. Revísalo con un profesional antes de firmar. · v{{ version }}</footer>
+<footer class="footer">Borrador orientativo: no constituye asesoría legal. Revísalo con un profesional antes de firmar. · v{{ version }}</footer>
 
 <div id="aiMenu" role="menu" aria-label="Editar con IA">
   <button role="menuitem" data-action="mejorar">✨ Mejorar redacción</button>

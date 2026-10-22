@@ -1,6 +1,7 @@
 from .contract import (
     MAX_DESCRIPTION,
     MAX_EDIT_TEXT,
+    MAX_REFERENCE,
     ContractDetails,
     ContractRequest,
     ContractType,
@@ -12,6 +13,7 @@ from .contract import (
 __all__ = [
     "MAX_DESCRIPTION",
     "MAX_EDIT_TEXT",
+    "MAX_REFERENCE",
     "ContractDetails",
     "ContractRequest",
     "ContractType",

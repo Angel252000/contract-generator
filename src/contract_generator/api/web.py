@@ -12,11 +12,49 @@ from .. import __version__
 from ..config import Settings
 from ..data import WriterError
 from ..domain import ContractType, ValidationError
-from ..service import ContractService, create_service, html_to_docx
+from ..service import ContractService, create_service, extract_text, html_to_docx
 
 log = logging.getLogger(__name__)
 PACKAGE_DIR = Path(__file__).resolve().parent.parent
-MAX_BODY_BYTES = 1_000_000
+MAX_BODY_BYTES = 5_000_000
+
+# Sugerencias bajo la caja de texto: (etiqueta, tipo, texto de ejemplo)
+SUGGESTIONS = [
+    (
+        "Acuerdo de servicios",
+        "servicios",
+        "Crea un acuerdo de servicios claro para trabajo freelance de diseño web, con 3 rondas de revisiones, "
+        "50% de anticipo y entrega en 4 semanas.",
+    ),
+    (
+        "Acuerdo de confidencialidad",
+        "nda",
+        "NDA mutuo para compartir el prototipo de una app con un posible inversor durante 2 años.",
+    ),
+    (
+        "Acuerdo de mantenimiento",
+        "mantenimiento",
+        "Contrato de mantenimiento mensual de equipos de aire acondicionado para una oficina, con visitas "
+        "trimestrales y atención de emergencias en 24 horas.",
+    ),
+    (
+        "Carta de autorización",
+        "personalizado",
+        "Carta de autorización para que un familiar retire documentos y realice trámites en mi nombre ante "
+        "una universidad.",
+    ),
+    (
+        "Acuerdo de pago",
+        "pago",
+        "Acuerdo de pago en 6 cuotas mensuales para saldar una deuda de USD 3.000 entre dos personas.",
+    ),
+    (
+        "Contratista independiente",
+        "contratista",
+        "Contrato de contratista independiente para un desarrollador que trabajará a distancia por horas, "
+        "con propiedad intelectual a favor de la empresa.",
+    ),
+]
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
@@ -53,6 +91,7 @@ def create_app(service: ContractService | None = None, settings: Settings | None
         return render_template(
             "index.html",
             types=list(ContractType),
+            suggestions=SUGGESTIONS,
             ai=service.uses_ai,
             model=settings.model,
             version=__version__,
@@ -82,6 +121,14 @@ def create_app(service: ContractService | None = None, settings: Settings | None
     @app.post("/api/edit")
     def edit():
         return jsonify(text=service.edit(request.get_json(silent=True) or {}))
+
+    @app.post("/api/extract")
+    def extract():
+        upload = request.files.get("file")
+        if upload is None:
+            raise ValidationError("No se recibió ningún archivo.")
+        text = extract_text(upload.filename or "", upload.read())
+        return jsonify(name=upload.filename, text=text, chars=len(text))
 
     @app.post("/api/export/docx")
     def export_docx():
