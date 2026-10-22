@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 
 from ..config import Settings
-from ..data import ClaudeWriter, ContractWriter, TemplateWriter
+from ..data import ClaudeWriter, ContractWriter, OpenAICompatWriter, TemplateWriter
 from ..domain import ContractRequest, EditRequest
 
 
@@ -24,8 +24,13 @@ class ContractService:
         return self.writer.rewrite(EditRequest.from_dict(data))
 
 
+def build_writer(settings: Settings) -> ContractWriter:
+    if settings.provider == "anthropic":
+        return ClaudeWriter(settings.model)
+    if settings.provider == "plantilla":
+        return TemplateWriter()
+    return OpenAICompatWriter(settings.provider, settings.label, settings.model, settings.base_url, settings.api_key)
+
+
 def create_service(settings: Settings) -> ContractService:
-    """Usa Claude si hay credenciales; si no, la plantilla offline."""
-    if settings.has_credentials:
-        return ContractService(ClaudeWriter(settings.model))
-    return ContractService(TemplateWriter())
+    return ContractService(build_writer(settings))

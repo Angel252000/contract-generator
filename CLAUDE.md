@@ -1,16 +1,17 @@
 # contract-generator
 
-Generador de contratos con IA (réplica del flujo de Jotform AI Contract Generator): web Flask + CLI, Claude vía SDK `anthropic`.
+Generador de contratos con IA (réplica del flujo de Jotform AI Contract Generator): web Flask + CLI. IA: Claude (SDK `anthropic`) o gratis vía API compatible con OpenAI (Ollama local, Groq, Gemini).
 
 ## Stack
 
-Python 3.11+, Flask 3, waitress, anthropic 2.x (usa `httpx2`, no `httpx`), python-docx, python-dotenv. Frontend sin build: HTML + `static/app.js` con marked y DOMPurify desde cdnjs.
+Python 3.11+, Flask 3, waitress, anthropic 2.x y openai 3.x (ambos usan `httpx2`, no `httpx`), python-docx, python-dotenv. Frontend sin build: HTML + `static/app.js` con marked y DOMPurify desde cdnjs.
 
 ## Mapa
 
 - `src/contract_generator/domain/contract.py` — `ContractType`, `EditAction`, `ContractRequest`, `EditRequest`; toda la validación de entrada (lanza `ValidationError`).
-- `src/contract_generator/data/` — `ContractWriter` (Protocol) con `ClaudeWriter` (prompts + streaming + fallbacks) y `TemplateWriter` (offline).
-- `src/contract_generator/service/contracts.py` — `ContractService` y `create_service` (elige redactor según credenciales).
+- `src/contract_generator/config.py` — `PROVIDERS` y `Settings.from_env()`: `AI_PROVIDER` → primera clave (Anthropic, Groq, Gemini) → Ollama si responde → plantilla.
+- `src/contract_generator/data/` — `ContractWriter` (Protocol) con `ClaudeWriter` (streaming + fallbacks), `OpenAICompatWriter` (Ollama/Groq/Gemini) y `TemplateWriter` (offline); prompts compartidos en `prompts.py`.
+- `src/contract_generator/service/contracts.py` — `ContractService`, `build_writer` y `create_service`.
 - `src/contract_generator/service/export.py` — HTML del editor → `.docx`.
 - `src/contract_generator/service/importer.py` — texto de un .docx/.txt/.md subido (campo `reference` de la solicitud).
 - `src/contract_generator/api/web.py` — `create_app(service, settings)`; rutas `/`, `/healthz`, `/api/generate` (SSE), `/api/edit`, `/api/extract`, `/api/export/docx`. `SUGGESTIONS` define las sugerencias de la portada.

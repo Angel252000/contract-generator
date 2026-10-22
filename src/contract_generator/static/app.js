@@ -11,9 +11,11 @@ let lastRequest = null;
 let savedRange = null;
 let busy = false;
 
+// Los modelos pequeños a veces envuelven la respuesta en ```markdown ... ```: se quita ese envoltorio.
+const unfence = (md) => md.replace(/^\s*```(?:markdown|md)?[^\n]*\n/i, "").replace(/\n```\s*$/, "");
 // El HTML que entra al editor viene de Markdown generado por la IA: siempre sanitizado.
-const toHtml = (md) => DOMPurify.sanitize(marked.parse(md));
-const toInlineHtml = (md) => DOMPurify.sanitize(marked.parseInline(md));
+const toHtml = (md) => DOMPurify.sanitize(marked.parse(unfence(md)));
+const toInlineHtml = (md) => DOMPurify.sanitize(marked.parseInline(unfence(md)));
 
 function toast(msg) {
   const t = $("#toast");
